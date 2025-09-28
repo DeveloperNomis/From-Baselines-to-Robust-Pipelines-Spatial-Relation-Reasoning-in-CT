@@ -145,4 +145,48 @@ The model is trained to predict the next text token on interleaved image and tex
 This means the vision transformer is trained on token loss. This cannot be used for reliable and exact geometric reasoning.    
 
 
+## Why Chain-of-Thought (CoT) Does Not Help With Geometry
+
+**Scope:** CoT is evaluated for **query parsing**, not for **geometric reasoning**. Below are the reasons CoT does **not** improve spatial relation accuracy in CT imaging—especially with PNG-only inputs.
+
+### 1) Wrong training objective
+- Multimodal LLMs are optimized with **token-level cross-entropy** (next-token prediction).
+- There is **no coordinate/metric loss** (no Dice/MSE on masks or centroid regression).
+- CoT adds more tokens (steps), but **does not introduce a geometric supervision signal**.
+
+### 2) No geometric grounding (PNG setup)
+- PNGs lack **voxel spacing**, **patient orientation**, and **slice position**.
+- Without these, “left/right” and “above/below” in the image do **not** map to patient-space anatomy.
+- CoT cannot recover missing metadata; it only verbalizes reasoning over **un-grounded pixels**.
+
+### 3) Hallucinated coordinates remain hallucinated
+- Asking the LLM to output `(x,y[,z])` + using a rule checker is **more explainable** than direct yes/no,
+  but coordinates are still **guesses**, not measurements.
+- CoT does not make these guesses **more accurate or reproducible**; it just explains them.
+
+### 4) Stochasticity and instability
+- LLM outputs vary with sampling/temperature and prompt phrasing.
+- CoT increases sequence length → **more variance** without adding objective geometry.
+
+### 5) No mm-scale decisions, no thresholds
+- Geometry decisions (e.g., minimum separation) require **millimeter units** and consistent axes.
+- PNG-only + CoT cannot provide **patient-space distances** → no robust thresholding.
+
+### 6) Safety and reproducibility
+- Clinical decisions need **deterministic, auditable** criteria.
+- CoT produces **plausible narratives**, not verifiable metrics; it can mask side inversions or slice ambiguities.
+
+---
+
+### What CoT *is* useful for
+- **Parsing only:** disambiguating synonyms, extracting relation keywords, mapping to ontology/LUT.
+- Use **constrained JSON** for robust schema output; skip CoT if rules+LUT already solve parsing reliably.
+
+### Recommended practice
+- **Do not** rely on CoT for geometry.
+- For PNG baselines: obtain **pixel coordinates** from a **2D detector/segmenter** and apply **deterministic rules**.
+- For research-grade/clinical setups: use **DICOM/NIfTI**, normalize orientation/spacing, and rely on **3D segmentation or centroid regression** in patient space.
+
+**TL;DR:** CoT adds words, not coordinates. Geometry needs **grounded measurements**, not longer reasoning chains.
+
 
