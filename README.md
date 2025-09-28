@@ -109,6 +109,36 @@ Add anatomical context or synonyms to improve readability for medical users.
 If confidence is too low, generate a cautious answer.
 Example: "The relation could not be determined with sufficient confidence. Likely candidates are..."
 
+## Small Alternative: LLM-generated coordinates + Geometry Checker
+
+Instead of asking the LLM to directly answer *true/false*,  
+we prompt it to output **estimated coordinates** of the queried objects in JSON form:
+
+```json
+{
+  "obj1": "left kidney",
+  "coords1": [120, 200],
+  "obj2": "ivc",
+  "coords2": [118, 80]
+}
+```
+
+A deterministic Geometry Checker then evaluates the relation:
+
+- left/right → compare x
+- above/below → compare y
+
+**Pros:**  
+- Transparent and explainable
+- Errors can be attributed to wrong coordinates (not the decision rule)
+- Allows systematic evaluation (LLM parsing vs. geometric rule)
+- Could have 10-20 % better accuracy
+
+**Cons:**  
+- Less reliable than a detector/segmenter trained for geometry
+
+This setup is a stronger baseline than pure LLM yes/no predictions, but it cannot replace a proper detector-based pipeline.
+
 ## Problems with current Pixtral-12B:
 
 The model is trained to predict the next text token on interleaved image and text data.  
