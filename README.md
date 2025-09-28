@@ -145,45 +145,38 @@ The model is trained to predict the next text token on interleaved image and tex
 This means the vision transformer is trained on token loss. This cannot be used for reliable and exact geometric reasoning.    
 
 
-## Why PNGs break geometric relation reasoning (a concrete argument)
+## Why Chain-of-Thought (CoT) is not effective for relational comparisons on PNGs
 
-To answer radiological relation queries (e.g., *“Is A left of B?”*) you need a mapping from **image** to **patient space** with (i) a **coordinate frame** (handedness/orientation), (ii) **units** (mm per pixel), and (iii) **slice position** (z). PNGs lack these—leading to three fundamental failure modes:
+1) **No grounding in pixel coordinates**  
+   - LLMs (even multimodal) do not output measured coordinates.  
+   - CoT just verbalizes "steps" in language, but these steps are not tied to actual pixel positions.  
+   - Example: The model may reason *“the kidney is usually lower than the liver”* → this is prior knowledge, not an observation of the given PNG.
 
-### 1) Orientation ambiguity (unknown reflection/handedness)
-- Let `T : patient_space → image_space` be the (unknown) export transform. Without DICOM orientation, `T` may include a **horizontal flip** `H`.
-- The predicate `left_of(A,B)` is **not invariant** to `H`. Formally:
-  - `left_of(A,B)` in patient space ⇔ `x_A < x_B`
-  - Apply `H`: `x' = W - x` → the relation becomes **right_of** in image space.
-- **Consequence:** the *same* CT can be exported to two PNGs (viewer A vs. viewer B) that are mirror images; any image-space algorithm will output opposite answers. With no orientation metadata, you cannot tell which is correct → at best **~50% correctness** for left/right over mixed exports.
+2) **Language-based heuristics instead of visual evidence**  
+   - CoT relies on text-based reasoning patterns.  
+   - Relations in images (left/right, above/below) require **quantitative comparison** of pixel values, not narrative heuristics.  
+   - The chain of reasoning does not change the underlying fact: the model is still guessing based on associations.
 
-### 2) Scale ambiguity (unknown voxel spacing → no distances, no thresholds)
-- PNGs do not store **voxel spacing**. Let the (unknown) scale be `s` mm/pixel.
-- Many geometric decisions require thresholds in **mm** (e.g., “declare relation only if |x_A − x_B| ≥ τ mm” to avoid ties/overlap).
-- In PNGs, you only have pixels: `|x_A − x_B|_pixels`. Without `s`, you cannot assert `|x_A − x_B|_mm = s · |x_A − x_B|_pixels ≥ τ`.
-- **Consequence:** you cannot set robust decision margins or compare across scans; resampled PNGs (256→512 px) change answers though anatomy is identical → **non-reproducible** geometry.
+3) **Stochastic and non-reproducible outputs**  
+   - CoT increases output length and reasoning variance.  
+   - The same PNG can yield different relational answers depending on prompt phrasing or random sampling.  
+   - For binary spatial relations, this randomness directly hurts accuracy.
 
-### 3) Depth ambiguity (unknown slice position and axis semantics)
-- PNGs are single 2D snapshots with **no z-index** and no `ImagePositionPatient`.  
-- Relations like **above/below (superior/inferior)** depend on **z** (and on whether image y points anterior→posterior or superior→inferior—also unknown in PNGs).
-- If A and B peak on **different slices**, a single PNG cannot encode their 3D relation at all.
-- **Consequence:** even perfect image-space y-comparisons may map to the **wrong anatomical axis**; superior/inferior cannot be validated, and 3D consistency checks are impossible.
+4) **No improvement in accuracy for geometry**  
+   - Empirically, CoT improves tasks that need multi-step **logical deduction** (math, text puzzles).  
+   - Geometric relations are **atomic comparisons** (x₁ < x₂).  
+   - Adding intermediate reasoning steps does not make the underlying guess any closer to the true pixel geometry.
 
----
-
-### Counterexamples that break PNG-based geometry
-- **Mirror export:** Export the same DICOM twice, once with a left-right flip. A PNG-only method yields opposite answers for “left_of”—both cannot be correct.  
-- **Resample export:** Export once at 0.7 mm/px and once at 1.2 mm/px. Pixel separations differ; any fixed pixel threshold changes the decision, though anatomy is identical.  
-- **Different slice:** Two PNGs from neighboring slices show organ A but not B (or vice versa). A 2D relation is undefined; there is no z to reason about.
+5) **False explainability**  
+   - CoT outputs *sound plausible* (“the object appears below because kidneys are lower”), but they are not tied to actual visual evidence.  
+   - This creates an illusion of reasoning without measurable grounding in the PNG image.
 
 ---
 
-### The only way PNG could work reliably
-Add back the missing metadata **outside** the PNG:
-- A **sidecar** (JSON) with `orientation`, `voxel_spacing`, `slice_index/z`, and a **frozen export convention**.
-- Or burn-in L/R markers + provide a machine-readable mapping (still brittle).
-Once you do this, you are no longer using “just PNG”; you’ve recreated the essential parts of DICOM/NIfTI.
-
-**Conclusion:** PNGs lack the invariants (orientation, scale, depth) required for geometric truth. Chain-of-Thought cannot restore missing metadata; it only narrates over ungrounded pixels. For reliable relation reasoning, you need coordinates grounded in patient space (i.e., DICOM/NIfTI + preprocessing + detector), or at minimum, PNGs augmented with explicit, machine-readable metadata.
+**Conclusion:**  
+On PNG-only setups, CoT cannot improve relational accuracy.  
+It produces longer, more plausible-sounding answers, but still lacks grounding in pixel coordinates.  
+For spatial relations, deterministic rules on extracted centroids (via a detector/segmenter) are the only reliable way forward.
 
 
 
