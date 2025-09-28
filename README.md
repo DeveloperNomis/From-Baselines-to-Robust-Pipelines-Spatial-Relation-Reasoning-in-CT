@@ -45,7 +45,7 @@ Other data is needed (DICOM/NIfTI files), CT-scan normalization (for example iso
 
 
 ## With more simplified model:  
--Towards robust pipelines:  
+-  Towards robust pipelines:  
   - Language parsing (LLM-based): normalize synonyms and relations, map terms to ontology classes.
   - Medical segmentation/detection: extract centroids or masks from CT volumes in a normalized patient coordinate system.
   - Deterministic geometry checker: compute relations (left/right, above/below) using coordinates rather than heuristics.
@@ -58,6 +58,44 @@ By grounding relation reasoning in image-space coordinates rather than purely te
 - A reproducible foundation for baseline experiments: While not clinically valid, a PNG-based setup allows reproducible baselines and prototypes to evaluate the strengths and weaknesses of vision-language models versus hybrid approaches.
 
 
+## Pipeline for Relation Reasoning
+
+### 1. Input
+- PNG slice (baseline setup) + free-text question
+
+### 2. Query Parsing (LLM)
+- Task: normalize synonyms, handle plural/sides, and extract relation
+- Output: structured schema for class lookup
+```json
+{ "obj1": "left kidney", "cls1": 3, "obj2": "ivc", "cls2": 63, "relation": "below" }
+
+Parsing is required before detection, because the detector only knows fixed class IDs.
+Without this step, synonyms like “vena cava inferior” or “IVC” cannot be mapped consistently.  
+
+### 3. Detection / Segmentation
+- **Model:** 2D detector or segmenter (e.g., YOLO, U-Net) on PNG slices  
+- **Output:** pixel coordinates of centroids with confidence
+
+```json
+{ "cls": 3, "coords": [x,y], "score": 0.92 }
+```
+
+
+### 4. Geometry Checker (Image-Space)
+- Rule-based comparison of centroids:
+  - left/right → compare x
+  - above/below → compare y
+- Output: decision + justification
+  
+```json
+{
+  "answer": true,
+  "reason": "Left kidney centroid (x=120,y=200) lies below IVC centroid (x=118,y=80).",
+  "confidence": 0.87
+}
+
+```
+The output is for example the structured JSON returned by the Geometry Checker.
 
 
 
