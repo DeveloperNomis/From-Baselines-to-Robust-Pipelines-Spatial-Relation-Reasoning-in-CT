@@ -45,7 +45,7 @@ Other data is needed (DICOM/NIfTI files), CT-scan normalization (for example iso
 
 
 ## With more simplified model:  
--  Towards robust pipelines:  
+**Towards robust pipelines:**    
   - Language parsing (LLM-based): normalize synonyms and relations, map terms to ontology classes.
   - Medical segmentation/detection: extract centroids or masks from CT volumes in a normalized patient coordinate system.
   - Deterministic geometry checker: compute relations (left/right, above/below) using coordinates rather than heuristics.
