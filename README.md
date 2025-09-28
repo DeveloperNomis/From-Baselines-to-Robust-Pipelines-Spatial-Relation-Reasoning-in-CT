@@ -98,6 +98,21 @@ Without this step, synonyms like “vena cava inferior” or “IVC” cannot be
 ```
 The output is for example the structured JSON returned by the Geometry Checker.
 
+### 5. LLM Explanation
+
+- **Natural language explanation:**
+Convert the structured JSON into a human-readable statement.  
+Example: "Yes, the left kidney is located below the inferior vena cava in this slice, with high confidence (87%)."  
+- **Contextualization:**
+Add anatomical context or synonyms to improve readability for medical users.
+- **Fallback handling:**
+If confidence is too low, generate a cautious answer.
+Example: "The relation could not be determined with sufficient confidence. Likely candidates are..."
+
+## Problems with current Pixtral-12B:
+
+The model is trained to predict the next text token on interleaved image and text data.  
+This means the vision transformer is trained on token loss. This cannot be used for reliable and exact geometric reasoning.    
 
 
 
