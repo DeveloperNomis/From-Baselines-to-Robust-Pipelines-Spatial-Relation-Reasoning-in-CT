@@ -12,8 +12,53 @@ This repository explores the progression from simplified baseline approaches to 
   - Skipping preprocessing: leads to orientation errors, distorted distances, and poor generalization across scanners and protocols.
  
 You could use PNG snapshots and skip preprocessing if you only want to do a proof-of-concept with 2D-Slices.  
-Problem: Detector needs to be trained again on ct scans. For a final, research-grade workflow → you need a full 3D detector/segmenter on DICOM/NIfTI.  
-Training a PNG model is only worth it for short-term prototypes, not for serious research.  
+Problem: Detector needs to be trained again on ct scans if a full radiological examination is required. For a final, research-grade workflow → you need a full 3D detector/segmenter on DICOM/NIfTI.  
+Training a PNG model is only worth it for short-term prototypes.  
+
+## Why Radiological Analysis Cannot Be Done on PNG Images
+
+Working with PNG exports instead of DICOM/NIfTI volumes is fundamentally limiting. PNGs are suitable for demonstrations and baselines, but **not** for radiological analysis. Three key reasons:
+
+1. **Loss of Hounsfield Units (HU)**  
+   - CT intensity values are mapped to windowed grayscale in PNGs.  
+   - Absolute tissue densities (e.g., fat ≈ –100 HU, bone > +700 HU) are lost.  
+   - Without HU, no meaningful tissue characterization, lesion assessment, or quantitative radiomics can be performed.  
+
+2. **No Voxel Spacing or Patient Coordinates**  
+   - PNGs lack information on voxel size (mm per pixel) and slice position/orientation.  
+   - Distances, volumes, and anatomical relations in 3D cannot be measured.  
+   - “Left/right” and “above/below” in the image may not correspond to patient anatomy.  
+
+3. **Non-reproducible exports**  
+   - PNGs depend on windowing, cropping, and orientation chosen during export.  
+   - Two exports of the same CT series can look different, with no standardization.  
+   - This breaks reproducibility and makes clinical or research validation impossible.  
+
+---
+
+✅ **Conclusion:**  
+PNGs are acceptable for **baselines and prototyping** (e.g., testing multimodal LLMs), but radiological investigations require **DICOM or NIfTI** with full metadata.
+
+
+## With full radiological examination that can be used in real world scenarios:  
+Other data is needed (DICOM/NIfTI files), CT-scan normalization (for example isotropic resampling). And then also specific detectors and not only multimodal models like Pixtral-12B.
+
+
+## With more simplified model:  
+-Towards robust pipelines:  
+  - Language parsing (LLM-based): normalize synonyms and relations, map terms to ontology classes.
+  - Medical segmentation/detection: extract centroids or masks from CT volumes in a normalized patient coordinate system.
+  - Deterministic geometry checker: compute relations (left/right, above/below) using coordinates rather than heuristics.
+  - QA and fallbacks: confidence filtering, anatomical plausibility checks, consistency across slices.
+
+By grounding relation reasoning in image-space coordinates rather than purely text-based heuristics, this approach achieves:  
+- Robustness within a fixed image orientation: If PNGs are exported consistently (same plane, same orientation), relations such as left/right or above/below can be determined reliably in image space.  
+- Scalability to many queried relations: Once a detector provides pixel coordinates for multiple objects, arbitrary spatial relations can be computed deterministically.  
+- Explainability through explicit pixel coordinates and distances: Results can be traced back to centroid positions or bounding boxes in the image (e.g., centroid A at x=120 vs. centroid B at x=300 → A is left of B).  
+- A reproducible foundation for baseline experiments: While not clinically valid, a PNG-based setup allows reproducible baselines and prototypes to evaluate the strengths and weaknesses of vision-language models versus hybrid approaches.
+
+
+
 
 
 
