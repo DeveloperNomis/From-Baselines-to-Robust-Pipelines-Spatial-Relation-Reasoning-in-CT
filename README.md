@@ -68,13 +68,14 @@ By grounding relation reasoning in image-space coordinates rather than purely te
 - Output: structured schema for class lookup
 ```json
 { "obj1": "left kidney", "cls1": 3, "obj2": "ivc", "cls2": 63, "relation": "below" }
+```
 
 Parsing is required before detection, because the detector only knows fixed class IDs.
 Without this step, synonyms like “vena cava inferior” or “IVC” cannot be mapped consistently.  
 
 ### 3. Detection / Segmentation
-- Model: 2D detector or segmenter (e.g., YOLO, U-Net) on PNG slices  
-- Output: pixel coordinates of centroids with confidence
+- **Model:** 2D detector or segmenter (e.g., YOLO, U-Net) on PNG slices  
+- **Output:** pixel coordinates of centroids with confidence
 
 ```json
 { "cls": 3, "coords": [x,y], "score": 0.92 }
