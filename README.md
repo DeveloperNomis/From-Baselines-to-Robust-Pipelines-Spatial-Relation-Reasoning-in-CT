@@ -178,5 +178,146 @@ On PNG-only setups, CoT cannot improve relational accuracy.
 It produces longer, more plausible-sounding answers, but still lacks grounding in pixel coordinates.  
 For spatial relations, deterministic rules on extracted centroids (via a detector/segmenter) are the only reliable way forward.
 
+In radiological examinations we can't guess, we need reliable systems that can be explained and work well.  
 
 
+
+## Example Thesis Structure 
+
+1. **Introduction & Related Work**  
+   - Motivation: automated relation reasoning in medical imaging  
+   - Trends: multimodal LLMs, Chain-of-Thought prompting  
+
+2. **Baselines**  
+   - **LLM direct output (yes/no)**  
+   - **LLM + Chain-of-Thought (parsing, relational reasoning)**  
+   - Hypothesis: CoT helps in text parsing but not in image geometry  
+
+3. **Proposed Hybrid Pipeline**  
+   - LLM for query parsing (normalize objects, extract relation)  
+   - Detector/segmenter to provide coordinates  
+   - Deterministic geometry checker for relations  
+
+4. **Experiments & Evaluation**  
+   - Compare accuracy: direct LLM vs. LLM+CoT vs. Hybrid  
+   - Error analysis: parsing vs. geometry failures  
+   - Discussion: explain why CoT fails, why hybrid is robust  
+
+5. **Conclusion**  
+   - CoT is useful for parsing but not for geometric reasoning  
+   - Hybrid pipeline provides explainability, robustness, and scalability
+
+
+## Why marked images yielded better results with Prompting
+
+In our experiments, multimodal LLMs performed almost at chance level (~50%) when asked to solve spatial relation tasks directly on unmarked PNGs.  
+When the same images contained **markings on the target organs**, performance improved by almost 10% for some datasets.  
+This effect can be explained as follows:
+
+1. **Localization is trivialized**  
+   - Without markings, the LLM must both *detect the organ* and *compare positions*.  
+   - With markings, the organ is visually highlighted → the localization step is solved for the model.
+   - Prompts that focus on visual relations focus more on "visual tokens" that can be ignored otherwise  
+
+2. **Strong saliency cues**  
+   - LLM vision encoders respond much more reliably to high-contrast overlays (colored boxes, arrows) than to subtle grayscale textures in CT images.  
+   - The model can use these cues to anchor its reasoning.  
+
+3. **Reduced ambiguity, simpler reasoning**  
+   - The LLM no longer has to decide *which structure is which*.  
+   - It only needs to compare the relative positions of the highlighted regions.
+
+**Limitation:**  
+- Even with markings, the improvement remains modest (~10%).  
+- The model still reasons via **visual heuristics**, not via deterministic geometry.  
+- Markings remove the hardest problem (object localization), but they do not provide true **patient-space coordinates**.
+- Chain-of-Thought prompting can add a **small further gain** (a few percentage points),  
+  since it forces the LLM to verbalize object and relation steps.  
+  However, this does not overcome the fundamental lack of geometric grounding.  
+
+
+**Conclusion:**  
+Markings make PNG-based CoT/prompting setups appear stronger by simplifying localization.  
+However, this does not scale to unmarked datasets or clinical tasks. For reproducible relation reasoning, explicit detection/segmentation and coordinate-based geometry checks are required.  
+
+
+## Why CoT yields only a few extra percentage points — and not more
+
+In marked-image setups, we could observe that Chain-of-Thought (CoT) prompting can add a **small further gain** (a few percentage points) on top of the ~10% improvement from markings.  
+This limited effect can be explained by two opposing factors:
+
+### Why CoT can help a little
+1. **Explicit step-by-step parsing**  
+   - CoT forces the model to write down intermediate steps (*“object A is here → object B is here → compare positions”*).  
+   - This reduces random yes/no guessing and activates more structured use of the visual input.  
+
+2. **Activation of prior knowledge**  
+   - LLMs carry statistical knowledge about anatomy (e.g., “kidneys are usually below the liver”).  
+   - CoT gives the model space to incorporate such priors explicitly into its reasoning process.  
+
+3. **Bias reduction through verbalization**  
+   - Forcing reasoning chains can reduce shortcut behavior (e.g., always answering “left”).  
+   - This leads to slightly more balanced and accurate predictions.  
+
+### Why CoT cannot help much more
+1. **Relations are atomic comparisons**  
+   - Left/right or above/below are simple `x₁ < x₂` decisions.  
+   - They are not multi-step logical puzzles where CoT typically shines.  
+
+2. **No geometric grounding**  
+   - The model does not measure pixel coordinates; it only generates plausible narratives.  
+   - CoT cannot turn ungrounded heuristics into deterministic geometry.  
+
+3. **Variance and instability**  
+   - Longer reasoning chains introduce more stochasticity.  
+   - Gains are small and inconsistent across datasets and prompts.
+   - Less random errors by introducing step by step reasoning: Can also be obtained by JSON-outputs.  
+
+---
+
+**Conclusion:**  
+CoT yields a **minor boost** in marked-image scenarios by enforcing more structured reasoning, but this boost is inherently capped.  
+Without true coordinate extraction, CoT cannot provide robust geometric accuracy beyond a few extra percentage points.  
+
+
+
+## Baseline Pipeline: CoT-only Geometric Reasoning
+
+This pipeline represents a **naïve baseline** where the multimodal LLM is asked to solve spatial relation questions purely through **Chain-of-Thought (CoT)** reasoning, without explicit detection or coordinate extraction.
+
+### 1. Input
+- PNG slice + free-text question  
+- Example: *"Is the left kidney below the inferior vena cava?"*
+
+### 2. Prompting with Chain-of-Thought
+- The LLM is instructed to "think step by step":
+  1. Identify object 1 in the image.  
+  2. Identify object 2 in the image.  
+  3. Compare their positions (left/right, above/below).  
+  4. Output a final answer (true/false).  
+
+Example CoT reasoning output (simplified):
+- Step 1: The left kidney is usually visible on the left side of the abdomen.
+- Step 2: The inferior vena cava runs along the midline.
+- Step 3: The kidney appears lower than the IVC.
+- Final answer: true
+
+### 3. Direct Answer
+- The model outputs a boolean prediction.
+
+### 4. Limitations
+- **No pixel-level grounding**: The LLM does not measure coordinates, it only narrates plausible relations.  
+- **High variance**: Answers can change depending on prompt wording or sampling.  
+- **Reliance on priors**: Often the model uses anatomical priors ("kidney is usually below liver") rather than evidence from the actual image.  
+- **Accuracy**: Typically near chance level (~50–55%), showing that CoT alone is not sufficient for geometry.  
+
+### 5. Purpose
+This pipeline is **not intended as a solution**, but as a **baseline** to highlight:
+- Why ungrounded CoT reasoning fails for spatial relations.  
+- Why explicit coordinates (detector + geometry checker) are necessary for robust performance.
+
+## Titles for master thesis:
+- From Chain-of-Thought to Hybrid Pipelines: Robust Spatial Relation Reasoning in CT Imaging
+- Parsing vs. Geometry: Hybrid Pipelines for Relation Reasoning in Medical Imaging
+- Grounded visual relation verification in medical imaging via structured outputs and deterministic geometric reasoning
+- 
