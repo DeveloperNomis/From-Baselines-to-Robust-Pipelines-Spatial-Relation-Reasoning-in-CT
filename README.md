@@ -107,7 +107,7 @@ Example: "Yes, the left kidney is located below the inferior vena cava in this s
 Add anatomical context or synonyms to improve readability for medical users.
 - **Fallback handling:**
 If confidence is too low, generate a cautious answer.
-Example: "The relation could not be determined with sufficient confidence. Likely candidates are..."
+Example: "The relation could not be determined with sufficient confidence. Likely candidates are..." Or: "It is likely that the left kidney is below the inferior vena cava. But this answer isn't reliable. The confidence is only 65 percent."
 
 ## Small Alternative: LLM-generated coordinates + Geometry Checker
 
