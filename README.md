@@ -320,4 +320,7 @@ This pipeline is **not intended as a solution**, but as a **baseline** to highli
 - From Chain-of-Thought to Hybrid Pipelines: Robust Spatial Relation Reasoning in CT Imaging
 - Parsing vs. Geometry: Hybrid Pipelines for Relation Reasoning in Medical Imaging
 - Grounded visual relation verification in medical imaging via structured outputs and deterministic geometric reasoning
-- 
+- Grounded visual relation verification in medical imaging via structured language parsing and geometric reasoning
+- Structured multimodal reasoning for grounded visual relation verification in medical imaging
+- A modular pipeline for grounded visual relation reasoning in medical imaging
+- Unified framework for structured parsing and geometric relation verification in CT data
