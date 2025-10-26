@@ -324,3 +324,7 @@ This pipeline is **not intended as a solution**, but as a **baseline** to highli
 - Structured multimodal reasoning for grounded visual relation verification in medical imaging
 - A modular pipeline for grounded visual relation reasoning in medical imaging
 - Unified framework for structured parsing and geometric relation verification in CT data
+- Grounded Visual Relation Reasoning in Medical Imaging via Structured Language Parsing and Geometric Cues
+- Grounded Visual Relation Verification in Medical Imaging through Structured Language Parsing and Geometric Reasoning
+- From Structured Language to Geometric Reasoning: Grounded Visual Relation Verification in Medical Imaging
+
